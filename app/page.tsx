@@ -386,10 +386,45 @@ function ServerBrowser() {
                   )}
                 </div>
               </div>
+              <div className="hidden sm:block text-right">
+                <p className="text-xs text-slate-600 mb-1">
+                  พัฒนาโดย <span className="text-indigo-400 font-semibold">Barron ItsHard</span>
+                </p>
+                <p className="text-xs text-slate-500">
+                  แจ้งปัญหา:{" "}
+                  <a 
+                    href="https://discord.com/users/1195754440955793442" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:text-indigo-300 transition-colors underline decoration-dotted"
+                  >
+                    Discord
+                  </a>
+                </p>
+              </div>
             </div>
             
             {/* Search Bar */}
-            <div className="relative group">
+            <div className="space-y-3">
+              {/* Mobile Developer Info */}
+              <div className="sm:hidden text-center pb-2 border-b border-slate-800/50">
+                <p className="text-xs text-slate-600 mb-1">
+                  พัฒนาโดย <span className="text-indigo-400 font-semibold">Barron ItsHard</span>
+                </p>
+                <p className="text-xs text-slate-500">
+                  แจ้งปัญหา:{" "}
+                  <a 
+                    href="https://discord.com/users/1195754440955793442" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:text-indigo-300 transition-colors underline decoration-dotted"
+                  >
+                    Discord
+                  </a>
+                </p>
+              </div>
+              
+              <div className="relative group">
               <input
                 type="text"
                 placeholder="ค้นหาเซิร์ฟเวอร์..."
@@ -410,6 +445,7 @@ function ServerBrowser() {
                   </svg>
                 </button>
               )}
+            </div>
             </div>
           </div>
         </div>
@@ -641,20 +677,9 @@ function ServerBrowser() {
       {/* Footer */}
       <footer className="relative border-t border-slate-800/50 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center space-y-2">
+          <div className="text-center">
             <p className="text-xs text-slate-600">
-              พัฒนาโดย <span className="text-indigo-400 font-semibold">Barron ItsHard</span>
-            </p>
-            <p className="text-xs text-slate-500">
-              แจ้งปัญหาหรือข้อเสนอแนะ:{" "}
-              <a 
-                href="https://discord.com/users/1195754440955793442" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-indigo-400 hover:text-indigo-300 transition-colors underline decoration-dotted"
-              >
-                Discord
-              </a>
+              © 2026 FiveM Anti-Cheat Check
             </p>
           </div>
         </div>
