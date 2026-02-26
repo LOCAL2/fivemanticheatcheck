@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FiveM Anti-Cheat Check - ตรวจสอบระบบป้องกันโกงเซิร์ฟเวอร์ FiveM",
+  title: "FiveM Anti-Cheat Check",
   description: "ตรวจสอบระบบ Anti-Cheat ของเซิร์ฟเวอร์ FiveM ในประเทศไทย พร้อมข้อมูลผู้เล่น แผนที่ และรายละเอียดเซิร์ฟเวอร์แบบเรียลไทม์",
 };
 
