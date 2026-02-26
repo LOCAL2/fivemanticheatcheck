@@ -641,9 +641,20 @@ function ServerBrowser() {
       {/* Footer */}
       <footer className="relative border-t border-slate-800/50 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <p className="text-xs text-slate-600">
               พัฒนาโดย <span className="text-indigo-400 font-semibold">Barron ItsHard</span>
+            </p>
+            <p className="text-xs text-slate-500">
+              แจ้งปัญหาหรือข้อเสนอแนะ:{" "}
+              <a 
+                href="https://discord.com/users/1195754440955793442" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-indigo-400 hover:text-indigo-300 transition-colors underline decoration-dotted"
+              >
+                Discord
+              </a>
             </p>
           </div>
         </div>
