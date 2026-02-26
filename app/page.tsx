@@ -174,11 +174,13 @@ function ServerBrowser() {
             }
             
             console.log('💾 Updating server state...');
-            setLastUpdate(new Date());
             console.log('✅ [UPDATE SUCCESS] State updated at', new Date().toLocaleTimeString('th-TH'));
             
             return data; // update ด้วยข้อมูลใหม่
           });
+          
+          // Update lastUpdate นอก callback เพื่อไม่ให้เกิด duplicate render
+          setLastUpdate(new Date());
         } else {
           console.error('❌ Data is not an array:', data);
         }
@@ -356,25 +358,25 @@ function ServerBrowser() {
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight mb-2">
                   Server Fivem Anti Cheat Check
                 </h1>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-lg shadow-emerald-500/50"></div>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-xs sm:text-sm text-slate-400">
                       <span className="font-semibold text-white"><AnimatedCounter value={filteredServers.length} /></span> เซิร์ฟเวอร์ออนไลน์
                     </p>
                   </div>
                   {lastUpdate && (
                     <>
-                      <div className="h-4 w-px bg-slate-700"></div>
+                      <div className="hidden sm:block h-4 w-px bg-slate-700"></div>
                       <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <p className="text-xs text-slate-500">
-                          อัพเดท: {lastUpdate.toLocaleTimeString('th-TH', { 
+                          อัพเดตข้อมูลล่าสุด: {lastUpdate.toLocaleTimeString('th-TH', { 
                             timeZone: 'Asia/Bangkok',
                             hour: '2-digit',
                             minute: '2-digit',
@@ -454,11 +456,11 @@ function ServerBrowser() {
       {/* Server List */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Pagination Info */}
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm text-slate-400">
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <p className="text-xs sm:text-sm text-slate-400">
             แสดง <span className="text-white font-semibold">{startIndex + 1}-{Math.min(endIndex, filteredServers.length)}</span> จาก <span className="text-white font-semibold">{filteredServers.length}</span> เซิร์ฟเวอร์
           </p>
-          <p className="text-sm text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-400">
             หน้า <span className="text-white font-semibold">{currentPage}</span> / <span className="text-white font-semibold">{totalPages}</span>
           </p>
         </div>
@@ -484,7 +486,7 @@ function ServerBrowser() {
             return (
               <div
                 key={server.EndPoint}
-                className="group relative bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                className="group relative bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-4 sm:p-6 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
               >
                 {/* Glow effect on hover */}
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-purple-500/5 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -494,7 +496,7 @@ function ServerBrowser() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-3 mb-3">
                       <div className="flex-shrink-0 relative group/icon">
-                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-black shadow-2xl ring-2 ring-slate-800 group-hover/icon:ring-indigo-500/50 transition-all">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-2xl ring-2 ring-slate-800 group-hover/icon:ring-indigo-500/50 transition-all">
                           {serverIconUrl ? (
                             <img
                               src={serverIconUrl}
@@ -528,14 +530,14 @@ function ServerBrowser() {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-xs font-bold rounded">#{globalIndex + 1}</span>
-                          <h2 className="text-xl font-bold text-white truncate">
+                          <h2 className="text-base sm:text-xl font-bold text-white truncate flex-1 min-w-0">
                             {cleanHostname}
                           </h2>
                         </div>
                         {server.Data.vars?.sv_projectDesc && (
-                          <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed">
+                          <p className="text-xs sm:text-sm text-slate-400 line-clamp-2 leading-relaxed">
                             {server.Data.vars.sv_projectDesc.replace(/\^[0-9]/g, "")}
                           </p>
                         )}
@@ -543,10 +545,10 @@ function ServerBrowser() {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-3 border border-slate-700/50">
-                        <p className="text-xs font-medium text-slate-500 mb-2">ผู้เล่น</p>
-                        <p className="text-sm font-bold text-white mb-2">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
+                        <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">ผู้เล่น</p>
+                        <p className="text-xs sm:text-sm font-bold text-white mb-1 sm:mb-2">
                           <AnimatedCounter value={currentPlayers} /> / <AnimatedCounter value={maxPlayers} />
                         </p>
                         <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
@@ -557,29 +559,29 @@ function ServerBrowser() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-3 border border-slate-700/50">
-                        <p className="text-xs font-medium text-slate-500 mb-2">โหมดเกม</p>
-                        <p className="text-sm font-semibold text-white truncate">
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
+                        <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">โหมดเกม</p>
+                        <p className="text-xs sm:text-sm font-semibold text-white truncate">
                           {gameType}
                         </p>
                       </div>
 
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-3 border border-slate-700/50">
-                        <p className="text-xs font-medium text-slate-500 mb-2">แผนที่</p>
-                        <p className="text-sm font-semibold text-white truncate">
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
+                        <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">แผนที่</p>
+                        <p className="text-xs sm:text-sm font-semibold text-white truncate">
                           {displayMap}
                         </p>
                       </div>
 
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-3 border border-slate-700/50">
-                        <p className="text-xs font-medium text-slate-500 mb-2">ไอพี</p>
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
+                        <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">ไอพี</p>
                         <p className="text-xs font-mono font-semibold text-white truncate">
                           {displayIP}
                         </p>
                       </div>
 
                       {/* Anti-Cheat Badge */}
-                      <div className={`${badge.bg} ${badge.text} ${badge.glow} rounded-xl px-4 py-3 backdrop-blur-sm relative overflow-hidden group/badge border-2 ${badge.border}`}>
+                      <div className={`${badge.bg} ${badge.text} ${badge.glow} rounded-xl px-3 sm:px-4 py-2 sm:py-3 backdrop-blur-sm relative overflow-hidden group/badge border-2 ${badge.border} col-span-1 xs:col-span-2 sm:col-span-3 lg:col-span-1`}>
                         {/* Shine effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/badge:translate-x-full transition-transform duration-700"></div>
                         
@@ -612,24 +614,24 @@ function ServerBrowser() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-2">
+          <div className="mt-8 flex items-center justify-center gap-1 sm:gap-2 flex-wrap px-2">
             <button
               onClick={() => updatePage(1)}
               disabled={currentPage === 1}
-              className="px-4 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+              className="hidden sm:flex px-2 sm:px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all text-sm items-center justify-center"
             >
               ««
             </button>
             <button
               onClick={() => updatePage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+              className="px-3 sm:px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all text-sm"
             >
               «
             </button>
             
             {/* Page Numbers */}
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum;
                 if (totalPages <= 5) {
@@ -646,10 +648,10 @@ function ServerBrowser() {
                   <button
                     key={pageNum}
                     onClick={() => updatePage(pageNum)}
-                    className={`px-4 py-2 rounded-lg border cursor-pointer transition-all ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg border cursor-pointer transition-all text-sm min-w-[44px] ${
                       currentPage === pageNum
-                        ? "bg-indigo-600 dark:bg-indigo-500 border-indigo-600 dark:border-indigo-500 text-white font-semibold"
-                        : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        ? "bg-indigo-600 border-indigo-600 text-white font-semibold"
+                        : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
                     }`}
                   >
                     {pageNum}
@@ -661,14 +663,14 @@ function ServerBrowser() {
             <button
               onClick={() => updatePage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+              className="px-3 sm:px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all text-sm"
             >
               »
             </button>
             <button
               onClick={() => updatePage(totalPages)}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+              className="hidden sm:flex px-2 sm:px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all text-sm items-center justify-center"
             >
               »»
             </button>
