@@ -86,12 +86,7 @@ function ServerBrowser() {
     async function loadData() {
       if (!isMounted) return;
       
-      const startTime = Date.now();
-      console.log('🔄 [FETCH START]', new Date().toLocaleTimeString('th-TH'));
-      
       try {
-        // โหลดทั้ง CSV และ API พร้อมกัน
-        console.log('📡 Fetching CSV and API...');
         const [csvResponse, apiResponse] = await Promise.all([
           fetch("/server_list.csv"),
           fetch("https://www.demoxshop.com/api_proxy.php?locale=th-TH")
@@ -99,18 +94,12 @@ function ServerBrowser() {
         
         if (!isMounted) return;
         
-        console.log('✅ Fetch completed in', Date.now() - startTime, 'ms');
-        console.log('📄 CSV Status:', csvResponse.status);
-        console.log('🌐 API Status:', apiResponse.status);
-        
         const [csvText, data] = await Promise.all([
           csvResponse.text(),
           apiResponse.json()
         ]);
         
         if (!isMounted) return;
-        
-        console.log('📊 CSV Length:', csvText.length, 'bytes');
         
         // Parse CSV
         const map: AntiCheatMap = {};
@@ -123,99 +112,42 @@ function ServerBrowser() {
           }
         });
         
-        console.log('🗺️ Anti-Cheat Map Size:', Object.keys(map).length);
         setAntiCheatMap(map);
-
-        console.log('📦 API Response type:', typeof data);
-        console.log('📋 Is Array:', Array.isArray(data));
-        console.log('🔢 Total servers received:', Array.isArray(data) ? data.length : 0);
         
         if (Array.isArray(data)) {
-          // ใช้ callback function เพื่อเข้าถึง state ล่าสุด
           setServers(prevServers => {
             const currentCount = prevServers.length;
             const newCount = data.length;
             const threshold = Math.floor(currentCount * 0.8);
             
-            console.log('📊 Current server count:', currentCount);
-            console.log('📊 New server count:', newCount);
-            console.log('📊 Threshold (80%):', threshold);
-            
             if (currentCount > 0 && newCount < threshold) {
-              console.warn('⚠️ [SKIP UPDATE] Incomplete data detected!');
-              console.warn('   Expected at least:', threshold);
-              console.warn('   Received:', newCount);
-              console.warn('   Difference:', currentCount - newCount, 'servers missing');
-              console.warn('   Percentage:', Math.round((newCount / currentCount) * 100) + '%');
-              return prevServers; // ไม่ update
+              return prevServers;
             }
             
-            // ตรวจสอบ server ที่หายไป
-            if (currentCount > 0) {
-              const currentEndpoints = new Set(prevServers.map(s => s.EndPoint));
-              const newEndpoints = new Set(data.map((s: ServerData) => s.EndPoint));
-              
-              const missing = [...currentEndpoints].filter(ep => !newEndpoints.has(ep));
-              const added = [...newEndpoints].filter(ep => !currentEndpoints.has(ep));
-              
-              if (missing.length > 0) {
-                console.log('❌ Missing servers:', missing.length);
-                console.log('   Endpoints:', missing.slice(0, 5), missing.length > 5 ? '...' : '');
-              }
-              
-              if (added.length > 0) {
-                console.log('✨ New servers:', added.length);
-                console.log('   Endpoints:', added.slice(0, 5), added.length > 5 ? '...' : '');
-              }
-              
-              if (missing.length === 0 && added.length === 0) {
-                console.log('✅ All servers present, no changes in server list');
-              }
-            }
-            
-            console.log('💾 Updating server state...');
-            console.log('✅ [UPDATE SUCCESS] State updated at', new Date().toLocaleTimeString('th-TH'));
-            
-            return data; // update ด้วยข้อมูลใหม่
+            return data;
           });
           
-          // Update lastUpdate นอก callback เพื่อไม่ให้เกิด duplicate render
           setLastUpdate(new Date());
-        } else {
-          console.error('❌ Data is not an array:', data);
         }
         
-        console.log('⏱️ Total time:', Date.now() - startTime, 'ms');
-        console.log('─────────────────────────────────────');
-        
       } catch (err) {
-        console.error('❌ [ERROR] Failed to load data:', err);
-        console.error('   Error type:', err instanceof Error ? err.name : typeof err);
-        console.error('   Error message:', err instanceof Error ? err.message : String(err));
-        console.error('⏱️ Failed after:', Date.now() - startTime, 'ms');
-        console.error('─────────────────────────────────────');
+        // Silent error handling
       } finally {
-        // ตั้ง loading เป็น false เฉพาะครั้งแรก
         if (loading && isMounted) {
-          console.log('🎬 Initial loading complete');
           setLoading(false);
         }
       }
     }
 
-    console.log('🚀 [INIT] Starting data fetch cycle...');
     loadData();
 
     // Auto-refresh ทุก 5 วินาที
-    console.log('⏰ Setting up auto-refresh (5s interval)');
     const interval = setInterval(() => {
-      console.log('🔁 [AUTO-REFRESH] Triggered');
       loadData();
     }, 5000);
 
     // Cleanup interval เมื่อ component unmount
     return () => {
-      console.log('🛑 Cleaning up auto-refresh interval');
       isMounted = false;
       clearInterval(interval);
     };
