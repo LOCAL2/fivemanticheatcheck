@@ -22,8 +22,11 @@ interface ServerData {
 }
 
 interface AntiCheatMap {
-  [key: string]: string;
+  [serverName: string]: string[];
 }
+
+// Global flag to prevent multiple API logs
+let hasLoggedApiStart = false;
 
 // Animated Counter Component
 function AnimatedCounter({ value, duration = 1000 }: { value: number; duration?: number }) {
@@ -70,7 +73,20 @@ function ServerBrowser() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
   const serversPerPage = 20;
+
+  const showToast = (message: string) => {
+    setToast({ message, show: true });
+    setTimeout(() => {
+      setToast({ message: '', show: false });
+    }, 2000);
+  };
+
+  // Initial system setup log
+  useEffect(() => {
+    console.log('Check Anti-Cheat Fivem System initialized successfully');
+  }, []);
 
   // Initialize from URL params
   useEffect(() => {
@@ -85,6 +101,11 @@ function ServerBrowser() {
     
     async function loadData() {
       if (!isMounted) return;
+      
+      if (!hasLoggedApiStart) {
+        console.log('API Check Anti-Cheat all server Create By Barron - Starting data synchronization');
+        hasLoggedApiStart = true;
+      }
       
       try {
         const [csvResponse, apiResponse] = await Promise.all([
@@ -101,20 +122,28 @@ function ServerBrowser() {
         
         if (!isMounted) return;
         
-        // Parse CSV
+        // Parse CSV - ใช้ชื่อเซิร์ฟเวอร์เป็น key (รองรับหลาย Anti-Cheat)
         const map: AntiCheatMap = {};
         const lines = csvText.split("\n").slice(1);
         
         lines.forEach(line => {
           const [serverName, antiCheat] = line.split(",").map(s => s.trim());
           if (serverName && antiCheat) {
-            map[serverName.toLowerCase()] = antiCheat;
+            const cleanName = serverName.toLowerCase();
+            if (!map[cleanName]) {
+              map[cleanName] = [];
+            }
+            if (!map[cleanName].includes(antiCheat)) {
+              map[cleanName].push(antiCheat);
+            }
           }
         });
         
         setAntiCheatMap(map);
         
         if (Array.isArray(data)) {
+          // Silent processing
+          
           setServers(prevServers => {
             const currentCount = prevServers.length;
             const newCount = data.length;
@@ -153,20 +182,21 @@ function ServerBrowser() {
     };
   }, []); // ลบ loading dependency
 
-  const getAntiCheat = (hostname: string): string => {
+  const getAntiCheat = (hostname: string): string[] => {
     const cleanName = hostname
       .replace(/\^[0-9]/g, "")
       .replace(/[^\w\s]/g, "")
       .trim()
       .toLowerCase();
 
-    for (const [serverName, antiCheat] of Object.entries(antiCheatMap)) {
+    // ค้นหาแบบ fuzzy matching
+    for (const [serverName, antiCheats] of Object.entries(antiCheatMap)) {
       if (cleanName.includes(serverName) || serverName.includes(cleanName)) {
-        return antiCheat;
+        return antiCheats;
       }
     }
 
-    return "ไม่มีระบบ Anti-Cheat";
+    return ["ไม่มีระบบ Anti-Cheat"];
   };
 
   const getAntiCheatBadge = (antiCheat: string) => {
@@ -278,6 +308,18 @@ function ServerBrowser() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-4 right-4 z-[9999] animate-slide-in">
+          <div className="bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl border border-slate-700 flex items-center gap-3">
+            <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="text-sm font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Animated background effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse"></div>
@@ -288,13 +330,13 @@ function ServerBrowser() {
       <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="text-center lg:text-left">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight mb-2">
                   Server Fivem Anti Cheat Check
                 </h1>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-center lg:justify-start gap-2 sm:gap-3">
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-lg shadow-emerald-500/50"></div>
                     <p className="text-xs sm:text-sm text-slate-400">
                       <span className="font-semibold text-white"><AnimatedCounter value={filteredServers.length} /></span> เซิร์ฟเวอร์ออนไลน์
@@ -303,7 +345,7 @@ function ServerBrowser() {
                   {lastUpdate && (
                     <>
                       <div className="hidden sm:block h-4 w-px bg-slate-700"></div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center sm:justify-start gap-2">
                         <svg className="w-3 h-3 sm:w-4 sm:h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -320,7 +362,7 @@ function ServerBrowser() {
                   )}
                 </div>
               </div>
-              <div className="hidden sm:block text-right">
+              <div className="hidden lg:block text-right">
                 <p className="text-xs text-slate-600 mb-1">
                   พัฒนาโดย <span className="text-indigo-400 font-semibold">Barron ItsHard</span>
                 </p>
@@ -339,9 +381,9 @@ function ServerBrowser() {
             </div>
             
             {/* Search Bar */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Mobile Developer Info */}
-              <div className="sm:hidden text-center pb-2 border-b border-slate-800/50">
+              <div className="lg:hidden text-center pb-3 border-b border-slate-800/50">
                 <p className="text-xs text-slate-600 mb-1">
                   พัฒนาโดย <span className="text-indigo-400 font-semibold">Barron ItsHard</span>
                 </p>
@@ -359,27 +401,27 @@ function ServerBrowser() {
               </div>
               
               <div className="relative group">
-              <input
-                type="text"
-                placeholder="ค้นหาเซิร์ฟเวอร์..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full px-5 py-3.5 pl-12 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all backdrop-blur-sm"
-              />
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              {searchTerm && (
-                <button
-                  onClick={() => handleSearch("")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
+                <input
+                  type="text"
+                  placeholder="ค้นหาเซิร์ฟเวอร์..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-full px-5 py-3.5 pl-12 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all backdrop-blur-sm text-sm sm:text-base"
+                />
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {searchTerm && (
+                  <button
+                    onClick={() => handleSearch("")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors p-1 hover:bg-slate-700 rounded"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -400,8 +442,7 @@ function ServerBrowser() {
         <div className="space-y-4">
           {currentServers.map((server, index) => {
             const globalIndex = startIndex + index;
-            const antiCheat = getAntiCheat(server.Data.hostname);
-            const badge = getAntiCheatBadge(antiCheat);
+            const antiCheats = getAntiCheat(server.Data.hostname);
             const cleanHostname = server.Data.hostname.replace(/\^[0-9]/g, "");
             const currentPlayers = server.Data.clients || 0;
             const maxPlayers = server.Data.svMaxclients || 0;
@@ -418,7 +459,7 @@ function ServerBrowser() {
             return (
               <div
                 key={server.EndPoint}
-                className="group relative bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-4 sm:p-6 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                className="group relative bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-4 sm:p-6 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 hover:-translate-y-2 overflow-hidden transform hover:scale-[1.02]"
               >
                 {/* Glow effect on hover */}
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-purple-500/5 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -428,7 +469,7 @@ function ServerBrowser() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-3 mb-3">
                       <div className="flex-shrink-0 relative group/icon">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-2xl ring-2 ring-slate-800 group-hover/icon:ring-indigo-500/50 transition-all">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-2xl ring-2 ring-slate-800 group-hover/icon:ring-indigo-500/50 group-hover/icon:shadow-indigo-500/30 transition-all duration-500 transform group-hover/icon:scale-110 group-hover/icon:rotate-1">
                           {serverIconUrl ? (
                             <img
                               src={serverIconUrl}
@@ -477,56 +518,126 @@ function ServerBrowser() {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
-                        <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">ผู้เล่น</p>
-                        <p className="text-xs sm:text-sm font-bold text-white mb-1 sm:mb-2">
-                          <AnimatedCounter value={currentPlayers} /> / <AnimatedCounter value={maxPlayers} />
-                        </p>
-                        <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500 rounded-full shadow-lg shadow-indigo-500/50"
-                            style={{ width: `${Math.min(playerPercentage, 100)}%` }}
-                          />
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center justify-between mb-1 sm:mb-2">
+                            <p className="text-xs font-medium text-slate-500">ผู้เล่น</p>
+                            <div className={`w-2 h-2 rounded-full ${playerPercentage > 80 ? 'bg-emerald-500' : playerPercentage > 40 ? 'bg-amber-500' : 'bg-slate-500'} animate-pulse`}></div>
+                          </div>
+                          <p className="text-xs sm:text-sm font-bold text-white mb-1 sm:mb-2">
+                            <AnimatedCounter value={currentPlayers} /> / <AnimatedCounter value={maxPlayers} />
+                          </p>
+                          <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-700 rounded-full shadow-lg ${
+                                playerPercentage > 80 
+                                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-emerald-500/50' 
+                                  : playerPercentage > 40 
+                                  ? 'bg-gradient-to-r from-amber-500 to-orange-400 shadow-amber-500/50'
+                                  : 'bg-gradient-to-r from-slate-500 to-slate-400'
+                              }`}
+                              style={{ width: `${Math.min(playerPercentage, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50 relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative z-10">
+                          <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">โหมดเกม</p>
+                          <p className="text-xs sm:text-sm font-semibold text-white truncate group-hover:text-indigo-300 transition-colors">
+                            {gameType}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50 relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative z-10">
+                          <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">แผนที่</p>
+                          <p className="text-xs sm:text-sm font-semibold text-white truncate group-hover:text-indigo-300 transition-colors">
+                            {displayMap}
+                          </p>
                         </div>
                       </div>
 
                       <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
-                        <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">โหมดเกม</p>
-                        <p className="text-xs sm:text-sm font-semibold text-white truncate">
-                          {gameType}
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
-                        <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">แผนที่</p>
-                        <p className="text-xs sm:text-sm font-semibold text-white truncate">
-                          {displayMap}
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
-                        <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">ไอพี</p>
-                        <p className="text-xs font-mono font-semibold text-white truncate">
+                        <div className="flex items-center justify-between gap-2 mb-1 sm:mb-2">
+                          <p className="text-xs font-medium text-slate-500">ไอพี</p>
+                          {displayIP !== "-" && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(displayIP);
+                                showToast('คัดลอก IP แล้ว');
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                              title="Copy IP"
+                            >
+                              <svg className="w-3 h-3 text-slate-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs font-mono font-semibold text-white break-all">
                           {displayIP}
                         </p>
                       </div>
 
-                      {/* Anti-Cheat Badge */}
-                      <div className={`${badge.bg} ${badge.text} ${badge.glow} rounded-xl px-3 sm:px-4 py-2 sm:py-3 backdrop-blur-sm relative overflow-hidden group/badge border-2 ${badge.border} col-span-1 xs:col-span-2 sm:col-span-3 lg:col-span-1`}>
-                        {/* Shine effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/badge:translate-x-full transition-transform duration-700"></div>
-                        
-                        <div className="relative z-10 text-center">
-                          <div className="flex items-center justify-center gap-2 mb-1">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50">
+                        <div className="flex items-center justify-between gap-2 mb-1 sm:mb-2">
+                          <p className="text-xs font-medium text-slate-500">Join Link</p>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`https://cfx.re/join/${server.EndPoint}`);
+                              showToast('คัดลอก Join Link แล้ว');
+                            }}
+                            className="p-1 hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                            title="Copy Join Link"
+                          >
+                            <svg className="w-3 h-3 text-slate-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        </div>
+                        <a
+                          href={`https://cfx.re/join/${server.EndPoint}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-mono font-semibold text-indigo-400 hover:text-indigo-300 break-all transition-colors"
+                        >
+                          https://cfx.re/join/{server.EndPoint}
+                        </a>
+                      </div>
+
+                      {/* Anti-Cheat Badges */}
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-slate-700/50 col-span-1 xs:col-span-2 sm:col-span-3 lg:col-span-1">
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                            <p className="text-xs font-bold uppercase tracking-widest">
+                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
                               Anti-Cheat
                             </p>
                           </div>
-                          <p className="text-lg font-black tracking-tight">{antiCheat}</p>
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            {antiCheats.map((antiCheat, idx) => {
+                              const badge = getAntiCheatBadge(antiCheat);
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`${badge.bg} ${badge.text} ${badge.glow} rounded-lg px-3 py-1.5 relative overflow-hidden group/badge border ${badge.border}`}
+                                >
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/badge:translate-x-full transition-transform duration-700"></div>
+                                  <p className="relative z-10 text-sm font-black tracking-tight">{antiCheat}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -620,6 +731,20 @@ function ServerBrowser() {
           </div>
         </div>
       </footer>
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-4 right-4 z-50 animate-pulse">
+          <div className="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg border border-emerald-500/20 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span className="text-sm font-medium">{toast.message}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

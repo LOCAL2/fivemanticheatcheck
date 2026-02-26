@@ -62,7 +62,7 @@ export default function ServersPage() {
         }
       } catch (err) {
         setError("ไม่สามารถโหลดข้อมูลได้");
-        console.error(err);
+        // Silent error handling
       } finally {
         setLoading(false);
       }
