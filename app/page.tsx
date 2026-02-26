@@ -478,7 +478,8 @@ function ServerBrowser() {
             const serverIP = server.Data.connectEndPoints?.[0] || "N/A";
             const displayIP = serverIP.includes("private-placeholder.cfx.re") ? "-" : serverIP;
             const mapName = server.Data.mapname;
-            const displayMap = mapName && (mapName.includes("discord.gg") || mapName.includes("https://")) ? "-" : mapName;
+            const displayMap = mapName && (mapName.includes("discord.gg") || mapName.includes("https://")) ? "-" : (mapName || "-");
+            const gameType = server.Data.gametype || "-";
 
             return (
               <div
@@ -558,7 +559,7 @@ function ServerBrowser() {
                       <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-3 border border-slate-700/50">
                         <p className="text-xs font-medium text-slate-500 mb-2">โหมดเกม</p>
                         <p className="text-sm font-semibold text-white truncate">
-                          {server.Data.gametype}
+                          {gameType}
                         </p>
                       </div>
 
