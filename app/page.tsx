@@ -501,6 +501,7 @@ function ServerBrowser() {
                               alt={cleanHostname}
                               className="w-full h-full object-cover group-hover/icon:scale-110 transition-transform duration-500"
                               loading="eager"
+                              decoding="sync"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 // ลองโหลดใหม่อีกครั้ง
