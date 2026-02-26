@@ -641,10 +641,7 @@ function ServerBrowser() {
       {/* Footer */}
       <footer className="relative border-t border-slate-800/50 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center space-y-2">
-            <p className="text-sm text-slate-500">
-              ข้อมูลอัพเดทแบบเรียลไทม์จาก FiveM API • รายการเซิร์ฟเวอร์ FiveM ประเทศไทย
-            </p>
+          <div className="text-center">
             <p className="text-xs text-slate-600">
               พัฒนาโดย <span className="text-indigo-400 font-semibold">Barron ItsHard</span>
             </p>
