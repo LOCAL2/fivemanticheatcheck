@@ -74,6 +74,9 @@ function ServerBrowser() {
   const [currentPage, setCurrentPage] = useState(1);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
+  const [antiCheatFilter, setAntiCheatFilter] = useState<string>('all');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
   const serversPerPage = 20;
 
   const showToast = (message: string) => {
@@ -85,7 +88,7 @@ function ServerBrowser() {
 
   // Initial system setup log
   useEffect(() => {
-    console.log('Check Anti-Cheat Fivem System initialized successfully');
+    console.log('FiveM Anti-Cheat Detection System - Online');
   }, []);
 
   // Initialize from URL params
@@ -102,16 +105,23 @@ function ServerBrowser() {
     async function loadData() {
       if (!isMounted) return;
       
-      if (!hasLoggedApiStart) {
-        console.log('API Check Anti-Cheat all server Create By Barron - Starting data synchronization');
-        hasLoggedApiStart = true;
-      }
-      
       try {
+        // Add timeout controller
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
         const [csvResponse, apiResponse] = await Promise.all([
-          fetch("/server_list.csv"),
-          fetch("https://www.demoxshop.com/api_proxy.php?locale=th-TH")
+          fetch("/server_list.csv", { 
+            cache: "no-store",
+            signal: controller.signal
+          }),
+          fetch("https://www.demoxshop.com/api_proxy.php?locale=th-TH", { 
+            cache: "no-store",
+            signal: controller.signal
+          })
         ]);
+        
+        clearTimeout(timeoutId);
         
         if (!isMounted) return;
         
@@ -126,7 +136,9 @@ function ServerBrowser() {
         const map: AntiCheatMap = {};
         const lines = csvText.split("\n").slice(1);
         
-        lines.forEach(line => {
+        // Use for loop instead of forEach for better performance
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
           const [serverName, antiCheat] = line.split(",").map(s => s.trim());
           if (serverName && antiCheat) {
             const cleanName = serverName.toLowerCase();
@@ -137,7 +149,7 @@ function ServerBrowser() {
               map[cleanName].push(antiCheat);
             }
           }
-        });
+        }
         
         setAntiCheatMap(map);
         
@@ -170,10 +182,10 @@ function ServerBrowser() {
 
     loadData();
 
-    // Auto-refresh ทุก 5 วินาที
+    // Auto-refresh ทุก 3 วินาที
     const interval = setInterval(() => {
       loadData();
-    }, 5000);
+    }, 3000);
 
     // Cleanup interval เมื่อ component unmount
     return () => {
@@ -238,9 +250,23 @@ function ServerBrowser() {
 
   const filteredServers = servers.filter(server => {
     if (!server?.Data?.hostname) return false;
+    
     try {
       const cleanHostname = server.Data.hostname.replace(/\^[0-9]/g, "").toLowerCase();
-      return cleanHostname.includes(searchTerm.toLowerCase());
+      const matchesSearch = cleanHostname.includes(searchTerm.toLowerCase());
+      
+      if (!matchesSearch) return false;
+      
+      // Apply anti-cheat filter
+      const antiCheats = getAntiCheat(server.Data.hostname);
+      
+      if (antiCheatFilter === 'all') return true;
+      if (antiCheatFilter === 'none') {
+        return antiCheats.includes("ไม่มีระบบ Anti-Cheat");
+      }
+      
+      return antiCheats.includes(antiCheatFilter);
+      
     } catch (err) {
       return false;
     }
@@ -269,7 +295,7 @@ function ServerBrowser() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when search or filter changes
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
@@ -279,6 +305,51 @@ function ServerBrowser() {
       params.set('search', value);
     }
     router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  // Reset to page 1 when filter changes
+  const handleFilterChange = (filter: string) => {
+    setAntiCheatFilter(filter);
+    setCurrentPage(1);
+    const params = new URLSearchParams();
+    params.set('page', '1');
+    if (searchTerm) {
+      params.set('search', searchTerm);
+    }
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  // Modal filter functions
+  const toggleFilterModal = () => {
+    setShowFilterModal(!showFilterModal);
+  };
+
+  const handleFilterCheckbox = (filter: string) => {
+    if (filter === 'all') {
+      setSelectedFilters(['all']);
+    } else {
+      const newFilters = selectedFilters.includes(filter)
+        ? selectedFilters.filter(f => f !== filter)
+        : [...selectedFilters.filter(f => f !== 'all'), filter];
+      
+      if (newFilters.length === 0) {
+        setSelectedFilters(['all']);
+      } else {
+        setSelectedFilters(newFilters);
+      }
+    }
+  };
+
+  const applyFilters = () => {
+    if (selectedFilters.includes('all')) {
+      handleFilterChange('all');
+    } else if (selectedFilters.includes('none') && selectedFilters.length === 1) {
+      handleFilterChange('none');
+    } else {
+      // For multiple filters, we'll use the first selected one for now
+      handleFilterChange(selectedFilters[0] || 'all');
+    }
+    setShowFilterModal(false);
   };
 
   if (loading) {
@@ -308,6 +379,102 @@ function ServerBrowser() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">กรองตาม Anti-Cheat</h3>
+              <button
+                onClick={toggleFilterModal}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-1">
+              <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedFilters.includes('all')}
+                  onChange={() => handleFilterCheckbox('all')}
+                  className="w-4 h-4 text-indigo-600 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500"
+                />
+                <span className="text-white font-medium">ทั้งหมด</span>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedFilters.includes('GHOSTX')}
+                  onChange={() => handleFilterCheckbox('GHOSTX')}
+                  className="w-4 h-4 text-red-600 bg-slate-700 border-slate-600 rounded focus:ring-red-500"
+                />
+                <span className="text-white font-medium">GHOSTX</span>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedFilters.includes('CRCBOY')}
+                  onChange={() => handleFilterCheckbox('CRCBOY')}
+                  className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-white font-medium">CRCBOY</span>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedFilters.includes('Launcher')}
+                  onChange={() => handleFilterCheckbox('Launcher')}
+                  className="w-4 h-4 text-indigo-600 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500"
+                />
+                <span className="text-white font-medium">Launcher</span>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedFilters.includes('กันโปรของตัวเอง')}
+                  onChange={() => handleFilterCheckbox('กันโปรของตัวเอง')}
+                  className="w-4 h-4 text-amber-600 bg-slate-700 border-slate-600 rounded focus:ring-amber-500"
+                />
+                <span className="text-white font-medium">กันโปรของตัวเอง</span>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedFilters.includes('none')}
+                  onChange={() => handleFilterCheckbox('none')}
+                  className="w-4 h-4 text-gray-600 bg-slate-700 border-slate-600 rounded focus:ring-gray-500"
+                />
+                <span className="text-white font-medium">ไม่มีกันโปร</span>
+              </label>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={toggleFilterModal}
+                className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={applyFilters}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
+              >
+                ใช้งาน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toast.show && (
         <div className="fixed bottom-4 right-4 z-[9999] animate-slide-in">
@@ -414,13 +581,22 @@ function ServerBrowser() {
                 {searchTerm && (
                   <button
                     onClick={() => handleSearch("")}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors p-1 hover:bg-slate-700 rounded"
+                    className="absolute right-12 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors p-1 hover:bg-slate-700 rounded cursor-pointer"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 )}
+                <button
+                  onClick={toggleFilterModal}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-indigo-400 transition-colors p-1 hover:bg-slate-700 rounded cursor-pointer"
+                  title="กรองตาม Anti-Cheat"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -459,7 +635,7 @@ function ServerBrowser() {
             return (
               <div
                 key={server.EndPoint}
-                className="group relative bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-4 sm:p-6 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 hover:-translate-y-2 overflow-hidden transform hover:scale-[1.02]"
+                className="group relative bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-4 sm:p-6 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 hover:-translate-y-2 overflow-hidden transform hover:scale-[1.02] cursor-pointer"
               >
                 {/* Glow effect on hover */}
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-purple-500/5 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -469,7 +645,7 @@ function ServerBrowser() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-3 mb-3">
                       <div className="flex-shrink-0 relative group/icon">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-2xl ring-2 ring-slate-800 group-hover/icon:ring-indigo-500/50 group-hover/icon:shadow-indigo-500/30 transition-all duration-500 transform group-hover/icon:scale-110 group-hover/icon:rotate-1">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-2xl ring-2 ring-slate-800 group-hover/icon:ring-indigo-500/50 group-hover/icon:shadow-indigo-500/30 transition-all duration-500 transform group-hover/icon:scale-110 group-hover/icon:rotate-1 cursor-pointer">
                           {serverIconUrl ? (
                             <img
                               src={serverIconUrl}
@@ -522,10 +698,7 @@ function ServerBrowser() {
                       <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="relative z-10">
-                          <div className="flex items-center justify-between mb-1 sm:mb-2">
-                            <p className="text-xs font-medium text-slate-500">ผู้เล่น</p>
-                            <div className={`w-2 h-2 rounded-full ${playerPercentage > 80 ? 'bg-emerald-500' : playerPercentage > 40 ? 'bg-amber-500' : 'bg-slate-500'} animate-pulse`}></div>
-                          </div>
+                          <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">ผู้เล่น</p>
                           <p className="text-xs sm:text-sm font-bold text-white mb-1 sm:mb-2">
                             <AnimatedCounter value={currentPlayers} /> / <AnimatedCounter value={maxPlayers} />
                           </p>
@@ -544,7 +717,7 @@ function ServerBrowser() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50 relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50 relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300 cursor-pointer">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="relative z-10">
                           <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">โหมดเกม</p>
@@ -554,7 +727,7 @@ function ServerBrowser() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50 relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl px-3 py-2 sm:py-3 border border-slate-700/50 relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300 cursor-pointer">
                         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="relative z-10">
                           <p className="text-xs font-medium text-slate-500 mb-1 sm:mb-2">แผนที่</p>
