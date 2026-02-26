@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface ServerData {
@@ -61,7 +61,7 @@ function AnimatedCounter({ value, duration = 1000 }: { value: number; duration?:
   return <>{displayValue}</>;
 }
 
-export default function Home() {
+function ServerBrowser() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [servers, setServers] = useState<ServerData[]>([]);
@@ -647,5 +647,31 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-24 h-24 mx-auto mb-8">
+            <div className="absolute inset-0 border-4 border-slate-800 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-transparent border-t-indigo-500 border-r-purple-500 rounded-full animate-spin"></div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xl font-semibold text-white">กำลังโหลดข้อมูล</p>
+            <p className="text-sm text-slate-400">กรุณารอสักครู่...</p>
+          </div>
+          <div className="flex justify-center gap-2 mt-6">
+            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <ServerBrowser />
+    </Suspense>
   );
 }
